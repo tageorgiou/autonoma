@@ -4,11 +4,24 @@
 #include <string.h>
 #include <GL/glut.h>
 
-#define POINTS
+#define POINTS 500
+#define SCALE (1.0/200.0)
+double points[POINTS][2];
 
 double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
-int w=400,h=300;
+int w=400,h=400;
+
+void step()
+{
+	int i;
+	double theta;
+	for (i = 0; i < POINTS; i++) {
+		theta = rand()/(double)RAND_MAX*2.0*M_PI;
+		points[i][0]+=cos(theta)*SCALE;
+		points[i][1]+=sin(theta)*SCALE;
+	}
+}
 
 void drawString(char* s)
 {
@@ -23,12 +36,14 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT); // clear the screen
 	glColor3f(0.0,0.0,0.0);
 
-	glBegin(GL_POINTS);
-	glVertex2f(0.5,0.2);
-	glEnd();
+	glPointSize(1.0);
 
-	glRasterPos2f(x,y);
-	drawString("x,y"); // center of circle, shows where text prints
+	glBegin(GL_POINTS);
+	int i;
+	for (i = 0; i < POINTS; i++) {
+		glVertex2f(points[i][0],points[i][1]);
+	}
+	glEnd();
 
 	//glFlush(); // single buffering, for double use glutSwapBuffers();
 	glutSwapBuffers();
@@ -67,8 +82,19 @@ void reshape(int wscr,int hscr)
 	gluOrtho2D(xmin,xmax,ymin,ymax);
 	glMatrixMode(GL_MODELVIEW);
 }
+void idle() {
+	step();
+	glutPostRedisplay();
+}
+
 int main(int argc,char* argv[])
-{  
+{ 
+	srand(0);
+	int i = 0;
+	for (i = 0; i < POINTS; i++) {
+		points[i][0] = 0.5;
+		points[i][1] = 0.5;
+	}
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // single buffering
 	glutInitWindowSize(w,h);					 // for double use GLUT_DOUBLE
@@ -79,7 +105,7 @@ int main(int argc,char* argv[])
 	glShadeModel(GL_SMOOTH);
 
 	glutDisplayFunc(display);		// register callback functions
-	glutIdleFunc(NULL);				// no animation
+	glutIdleFunc(idle);				// no animation
 	glutMouseFunc(mouse);
 	glutKeyboardFunc(keyfunc);
 	glutReshapeFunc(reshape);
