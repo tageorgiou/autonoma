@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
@@ -18,15 +19,21 @@ double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
 int w=500,h=500;
 
+int acc=1;
 void step()
 {
 	int i;
-	double theta;
 	for (i = 0; i < POINTS; i++) {
-		//TODO: make it elastic
-		theta = rand()/(double)RAND_MAX*2.0*M_PI;
-		velocity[i][0]+=cos(theta)*SCALE;
-		velocity[i][1]+=sin(theta)*SCALE;
+		//random acceleration
+		if (acc) {
+			double theta = rand()/(double)RAND_MAX*2.0*M_PI;
+			velocity[i][0]+=cos(theta)*SCALE;
+			velocity[i][1]+=sin(theta)*SCALE;
+		}
+		//gravity
+		velocity[i][0]-=(points[i][0]-0.5)*0.0001;
+		velocity[i][1]-=(points[i][1]-0.5)*0.0001;
+		//change position
 		points[i][0]+=velocity[i][0];
 		points[i][1]+=velocity[i][1];
 		
@@ -53,6 +60,7 @@ void display(void)
 	glBegin(GL_POINTS);
 	int i;
 	for (i = 0; i < POINTS; i++) {
+		//glColor3f(0.3*exp(0.1/SCALE*sqrt(velocity[i][0]*velocity[i][0]+velocity[i][1]*velocity[i][1])),0.0,0.0);
 		glVertex2f(points[i][0],points[i][1]);
 	}
 	glEnd();
@@ -73,9 +81,14 @@ void mouse(int button,int state,int xscr,int yscr)
 }
 void keyfunc(unsigned char key,int xscr,int yscr)
 {
-	if(key=='q')
-	{
+	if(key=='q') {
 		exit(0);
+	}
+	if(key==' ') {
+		if (acc)
+			acc=0;
+		else
+			acc=1;
 	}
 }
 void reshape(int wscr,int hscr)
@@ -95,6 +108,7 @@ void reshape(int wscr,int hscr)
 	glMatrixMode(GL_MODELVIEW);
 }
 void idle() {
+	usleep(2000);
 	step();
 	glutPostRedisplay();
 }
