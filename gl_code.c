@@ -2,27 +2,37 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include <GL/glut.h>
+#include <GL/glx.h>
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrender.h>
 
-#define POINTS 500
-#define SCALE (1.0/200.0)
+#define POINTS 100
+#define SCALE (1.0/15200.0)
 double points[POINTS][2];
+double velocity[POINTS][2];
 
 double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
-int w=400,h=400;
+int w=500,h=500;
 
 void step()
 {
 	int i;
 	double theta;
 	for (i = 0; i < POINTS; i++) {
+		//TODO: make it elastic
 		theta = rand()/(double)RAND_MAX*2.0*M_PI;
-		points[i][0]+=cos(theta)*SCALE;
-		points[i][1]+=sin(theta)*SCALE;
+		velocity[i][0]+=cos(theta)*SCALE;
+		velocity[i][1]+=sin(theta)*SCALE;
+		points[i][0]+=velocity[i][0];
+		points[i][1]+=velocity[i][1];
+		
 	}
 }
-
+int clear = 3;
 void drawString(char* s)
 {
 	int k;
@@ -32,11 +42,13 @@ void drawString(char* s)
 void display(void)
 {
 	double t;
-
-	glClear(GL_COLOR_BUFFER_BIT); // clear the screen
+	if (clear) {
+		glClear(GL_COLOR_BUFFER_BIT); // clear the screen
+//		clear--;
+	}
 	glColor3f(0.0,0.0,0.0);
 
-	glPointSize(1.0);
+	glPointSize(2.0);
 
 	glBegin(GL_POINTS);
 	int i;
@@ -94,6 +106,8 @@ int main(int argc,char* argv[])
 	for (i = 0; i < POINTS; i++) {
 		points[i][0] = 0.5;
 		points[i][1] = 0.5;
+		velocity[i][0] = 0.0;
+		velocity[i][1] = 0.0;
 	}
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // single buffering
@@ -103,6 +117,7 @@ int main(int argc,char* argv[])
 
 	glClearColor(1.0,1.0,1.0,0.0);
 	glShadeModel(GL_SMOOTH);
+	glEnable(GL_POINT_SMOOTH);
 
 	glutDisplayFunc(display);		// register callback functions
 	glutIdleFunc(idle);				// no animation
