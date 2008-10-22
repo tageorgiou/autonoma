@@ -11,7 +11,7 @@
 #include <X11/extensions/Xrender.h>
 
 #define POINTS 100
-#define SCALE (1.0/15200.0)
+#define SCALE (1.0/1000.0)
 double points[POINTS][2];
 double velocity[POINTS][2];
 
@@ -49,22 +49,33 @@ void drawString(char* s)
 void display(void)
 {
 	double t;
+	int i;
 	if (clear) {
-		glClear(GL_COLOR_BUFFER_BIT); // clear the screen
+		glClearColor(0.0,0.0,0.0,0.0);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glClearAccum(0.0,0.0,0.0,0.0);
+		glClear(GL_ACCUM_BUFFER_BIT);
 //		clear--;
 	}
-	glColor3f(0.0,0.0,0.0);
-
-	glPointSize(2.0);
-
+	glColor3f(1.0,1.0,1.0);
+	
 	glBegin(GL_POINTS);
-	int i;
+	for (i = 0; i < POINTS; i++) {
+		glVertex2f(points[i][0]-0.1,points[i][1]-0.1);
+	}
+	glEnd();
+	glAccum(GL_ACCUM,0.2);
+	glPointSize(2.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glBegin(GL_POINTS);
 	for (i = 0; i < POINTS; i++) {
 		//glColor3f(0.3*exp(0.1/SCALE*sqrt(velocity[i][0]*velocity[i][0]+velocity[i][1]*velocity[i][1])),0.0,0.0);
 		glVertex2f(points[i][0],points[i][1]);
 	}
 	glEnd();
-
+	glAccum(GL_ACCUM,0.8);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glAccum(GL_RETURN,1.0);
 	//glFlush(); // single buffering, for double use glutSwapBuffers();
 	glutSwapBuffers();
 }
@@ -108,7 +119,7 @@ void reshape(int wscr,int hscr)
 	glMatrixMode(GL_MODELVIEW);
 }
 void idle() {
-	usleep(2000);
+	usleep(20000);
 	step();
 	glutPostRedisplay();
 }
