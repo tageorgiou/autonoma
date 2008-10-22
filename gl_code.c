@@ -11,7 +11,7 @@
 #include <X11/extensions/Xrender.h>
 
 #define POINTS 100
-#define SCALE (1.0/1000.0)
+#define SCALE (1.0/10000.0)
 double points[POINTS][2];
 double velocity[POINTS][2];
 
@@ -58,14 +58,10 @@ void display(void)
 //		clear--;
 	}
 	glColor3f(1.0,1.0,1.0);
-	
-	glBegin(GL_POINTS);
-	for (i = 0; i < POINTS; i++) {
-		glVertex2f(points[i][0]-0.1,points[i][1]-0.1);
-	}
-	glEnd();
-	glAccum(GL_ACCUM,0.2);
+	glReadBuffer(GL_FRONT);
+	glAccum(GL_ACCUM,0.9);
 	glPointSize(2.0);
+	glReadBuffer(GL_BACK);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);
 	for (i = 0; i < POINTS; i++) {
@@ -73,8 +69,8 @@ void display(void)
 		glVertex2f(points[i][0],points[i][1]);
 	}
 	glEnd();
-	glAccum(GL_ACCUM,0.8);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glAccum(GL_ACCUM,1.0);
+//	glClear(GL_COLOR_BUFFER_BIT);
 	glAccum(GL_RETURN,1.0);
 	//glFlush(); // single buffering, for double use glutSwapBuffers();
 	glutSwapBuffers();
@@ -119,7 +115,7 @@ void reshape(int wscr,int hscr)
 	glMatrixMode(GL_MODELVIEW);
 }
 void idle() {
-	usleep(20000);
+	usleep(5000);
 	step();
 	glutPostRedisplay();
 }
