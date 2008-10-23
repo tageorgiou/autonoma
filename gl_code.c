@@ -55,27 +55,31 @@ void display(void)
 	if (clear) {
 		glClearColor(0.0,0.0,0.0,0.0);
 		glClear(GL_COLOR_BUFFER_BIT);
-		glClearAccum(0.0,0.0,0.0,0.0);
-		glClear(GL_ACCUM_BUFFER_BIT);
 //		clear--;
 	}
-	glColor3f(1.0,1.0,1.0);
+	//get front buffer
 	glReadBuffer(GL_FRONT);
-	glAccum(GL_ACCUM,0.7);
-	glPointSize(2.0);
+	glRasterPos2i(0,0);
+	glCopyPixels(0,0,w,h,GL_COLOR);
+	//fade out the front buffer
+	glColor4f(0.0,0.0,0.0,0.05);
+	glBegin(GL_QUADS);
+	glVertex2i(0,0);
+	glVertex2i(0,1);
+	glVertex2i(1,1);
+	glVertex2i(1,0);
+	glEnd();
 	glReadBuffer(GL_BACK);
-	glClear(GL_COLOR_BUFFER_BIT);
+
+	//draw points
+	glColor3f(1.0,1.0,1.0);
+	glPointSize(2.0);
 	glBegin(GL_LINES);
 	for (i = 0; i < POINTS; i++) {
-		//glColor3f(0.3*exp(0.1/SCALE*sqrt(velocity[i][0]*velocity[i][0]+velocity[i][1]*velocity[i][1])),0.0,0.0);
 		glVertex2f(points[i][0],points[i][1]);
 		glVertex2f(oldpoints[i][0],oldpoints[i][1]);
 	}
 	glEnd();
-	glAccum(GL_ACCUM,1.0);
-//	glClear(GL_COLOR_BUFFER_BIT);
-	glAccum(GL_RETURN,1.0);
-	//glFlush(); // single buffering, for double use glutSwapBuffers();
 	glutSwapBuffers();
 }
 void mouse(int button,int state,int xscr,int yscr)
@@ -123,19 +127,8 @@ void idle() {
 	glutPostRedisplay();
 }
 
-void initDisplay()
-{
-	Display *dpy;
-	int scrnum;
-	dpy = XOpenDisplay(NULL);
-	scrnum = DefaultScreen(dpy);
-	int attribList[] = {GLX_RGBA, GLX_RED_SIZE, 4, GLX_BLUE_SIZE, 4, GLX_GREEN_SIZE, 4, GLX_ACCUM_RED_SIZE, 4, GLX_ACCUM_GREEN_SIZE, 4, GLX_ACCUM_BLUE_SIZE, 4, None};
-	glXChooseVisual(dpy,scrnum,attribList);
-}
-
 int main(int argc,char* argv[])
 { 
-	initDisplay();
 	srand(0);
 	int i = 0;
 	for (i = 0; i < POINTS; i++) {
@@ -152,6 +145,8 @@ int main(int argc,char* argv[])
 
 	glClearColor(1.0,1.0,1.0,0.0);
 	glShadeModel(GL_SMOOTH);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_POINT_SMOOTH);
 	glEnable(GL_LINE_SMOOTH);
 	glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
