@@ -11,9 +11,10 @@
 #include <X11/extensions/Xrender.h>
 
 #define POINTS 100
-#define SCALE (1.0/10000.0)
+#define SCALE (1.0/700.0)
 double points[POINTS][2];
 double velocity[POINTS][2];
+double oldpoints[POINTS][2];
 
 double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
@@ -22,6 +23,7 @@ int w=500,h=500;
 int acc=1;
 void step()
 {
+	memcpy(oldpoints,points,POINTS*2*sizeof(double));
 	int i;
 	for (i = 0; i < POINTS; i++) {
 		//random acceleration
@@ -31,8 +33,8 @@ void step()
 			velocity[i][1]+=sin(theta)*SCALE;
 		}
 		//gravity
-		velocity[i][0]-=(points[i][0]-0.5)*0.0001;
-		velocity[i][1]-=(points[i][1]-0.5)*0.0001;
+		velocity[i][0]-=(points[i][0]-0.5)*SCALE;
+		velocity[i][1]-=(points[i][1]-0.5)*SCALE;
 		//change position
 		points[i][0]+=velocity[i][0];
 		points[i][1]+=velocity[i][1];
@@ -59,14 +61,15 @@ void display(void)
 	}
 	glColor3f(1.0,1.0,1.0);
 	glReadBuffer(GL_FRONT);
-	glAccum(GL_ACCUM,0.9);
+	glAccum(GL_ACCUM,0.7);
 	glPointSize(2.0);
 	glReadBuffer(GL_BACK);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glBegin(GL_POINTS);
+	glBegin(GL_LINES);
 	for (i = 0; i < POINTS; i++) {
 		//glColor3f(0.3*exp(0.1/SCALE*sqrt(velocity[i][0]*velocity[i][0]+velocity[i][1]*velocity[i][1])),0.0,0.0);
 		glVertex2f(points[i][0],points[i][1]);
+		glVertex2f(oldpoints[i][0],oldpoints[i][1]);
 	}
 	glEnd();
 	glAccum(GL_ACCUM,1.0);
@@ -115,13 +118,24 @@ void reshape(int wscr,int hscr)
 	glMatrixMode(GL_MODELVIEW);
 }
 void idle() {
-	usleep(5000);
+	usleep(20000);
 	step();
 	glutPostRedisplay();
 }
 
+void initDisplay()
+{
+	Display *dpy;
+	int scrnum;
+	dpy = XOpenDisplay(NULL);
+	scrnum = DefaultScreen(dpy);
+	int attribList[] = {GLX_RGBA, GLX_RED_SIZE, 4, GLX_BLUE_SIZE, 4, GLX_GREEN_SIZE, 4, GLX_ACCUM_RED_SIZE, 4, GLX_ACCUM_GREEN_SIZE, 4, GLX_ACCUM_BLUE_SIZE, 4, None};
+	glXChooseVisual(dpy,scrnum,attribList);
+}
+
 int main(int argc,char* argv[])
 { 
+	initDisplay();
 	srand(0);
 	int i = 0;
 	for (i = 0; i < POINTS; i++) {
@@ -134,11 +148,13 @@ int main(int argc,char* argv[])
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // single buffering
 	glutInitWindowSize(w,h);					 // for double use GLUT_DOUBLE
 	glutInitWindowPosition(100,50);
-	glutCreateWindow("OpenGL Demo");
+	glutCreateWindow("Particles");
 
 	glClearColor(1.0,1.0,1.0,0.0);
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
+	glEnable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
 
 	glutDisplayFunc(display);		// register callback functions
 	glutIdleFunc(idle);				// no animation
