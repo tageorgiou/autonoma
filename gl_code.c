@@ -22,6 +22,7 @@ double xmin,ymin,xmax,ymax;
 int w=500,h=500;
 
 int acc=1;
+int draw_acc=0;
 void step()
 {
 	memcpy(oldpoints,points,POINTS*2*sizeof(double));
@@ -89,9 +90,11 @@ void display(void)
 		glColor3f(1.0,1.0,1.0);
 		glVertex2f(points[i][0],points[i][1]);
 		glVertex2f(oldpoints[i][0],oldpoints[i][1]);
-		glColor3f(1.0,0.0,0.0);
-		glVertex2f(points[i][0],points[i][1]);
-		glVertex2f(points[i][0]+acceleration[i][0]*50,points[i][1]+acceleration[i][1]*50);
+		if (draw_acc) {
+			glColor3f(1.0,0.0,0.0);
+			glVertex2f(points[i][0],points[i][1]);
+			glVertex2f(points[i][0]+acceleration[i][0]*50,points[i][1]+acceleration[i][1]*50);
+		}
 	}
 	glEnd();
 	timea=timeb;
@@ -129,6 +132,9 @@ void keyfunc(unsigned char key,int xscr,int yscr)
 			acc=0;
 		else
 			acc=1;
+	}
+	if(key=='m') {
+			draw_acc=!draw_acc;
 	}
 }
 void reshape(int wscr,int hscr)
