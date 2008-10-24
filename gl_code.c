@@ -73,7 +73,7 @@ void display(void)
 	glRasterPos2i(0,0);
 	glCopyPixels(0,0,w,h,GL_COLOR);
 	//fade out the front buffer
-	glColor4f(0.0,0.0,0.0,0.05);
+	glColor4f(0.0,0.0,0.0,0.10);
 	glBegin(GL_QUADS);
 	glVertex2i(0,0);
 	glVertex2i(0,1);
@@ -128,10 +128,7 @@ void keyfunc(unsigned char key,int xscr,int yscr)
 		exit(0);
 	}
 	if(key==' ') {
-		if (acc)
-			acc=0;
-		else
-			acc=1;
+		acc=!acc;
 	}
 	if(key=='m') {
 			draw_acc=!draw_acc;
