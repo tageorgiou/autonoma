@@ -48,6 +48,10 @@ void drawString(char* s)
 	for(k=0;k<strlen(s);k++)
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,s[k]);
 }
+
+struct timeval timea;
+struct timeval timeb;
+char str[10];
 void display(void)
 {
 	double t;
@@ -80,6 +84,15 @@ void display(void)
 		glVertex2f(oldpoints[i][0],oldpoints[i][1]);
 	}
 	glEnd();
+	timea=timeb;
+	gettimeofday(&timeb,NULL);
+	double us = (timeb.tv_sec-timea.tv_sec)*1000000 + (timeb.tv_usec-timea.tv_usec);
+	glRasterPos2f(0.0,0.0);
+	glColor3f(0.5,0.5,0.0);
+	drawString(str);
+	
+	sprintf(str,"%3.1f",1e6/us);
+	//drawString(str);
 	glutSwapBuffers();
 }
 void mouse(int button,int state,int xscr,int yscr)
