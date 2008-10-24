@@ -14,6 +14,7 @@
 #define SCALE (1.0/700.0)
 double points[POINTS][2];
 double velocity[POINTS][2];
+double acceleration[POINTS][2];
 double oldpoints[POINTS][2];
 
 double x=0.667,y=0.5;
@@ -26,15 +27,20 @@ void step()
 	memcpy(oldpoints,points,POINTS*2*sizeof(double));
 	int i;
 	for (i = 0; i < POINTS; i++) {
+		acceleration[i][0]=0;
+		acceleration[i][1]=0;
 		//random acceleration
 		if (acc) {
 			double theta = rand()/(double)RAND_MAX*2.0*M_PI;
-			velocity[i][0]+=cos(theta)*SCALE;
-			velocity[i][1]+=sin(theta)*SCALE;
+			acceleration[i][0]+=cos(theta)*SCALE;
+			acceleration[i][1]+=sin(theta)*SCALE;
 		}
 		//gravity
-		velocity[i][0]-=(points[i][0]-0.5)*SCALE;
-		velocity[i][1]-=(points[i][1]-0.5)*SCALE;
+		acceleration[i][0]-=(points[i][0]-0.5)*SCALE;
+		acceleration[i][1]-=(points[i][1]-0.5)*SCALE;
+
+		velocity[i][0]+=acceleration[i][0];
+		velocity[i][1]+=acceleration[i][1];
 		//change position
 		points[i][0]+=velocity[i][0];
 		points[i][1]+=velocity[i][1];
@@ -80,19 +86,26 @@ void display(void)
 	glPointSize(2.0);
 	glBegin(GL_LINES);
 	for (i = 0; i < POINTS; i++) {
+		glColor3f(1.0,1.0,1.0);
 		glVertex2f(points[i][0],points[i][1]);
 		glVertex2f(oldpoints[i][0],oldpoints[i][1]);
+		glColor3f(1.0,0.0,0.0);
+		glVertex2f(points[i][0],points[i][1]);
+		glVertex2f(points[i][0]+acceleration[i][0]*50,points[i][1]+acceleration[i][1]*50);
 	}
 	glEnd();
 	timea=timeb;
 	gettimeofday(&timeb,NULL);
 	double us = (timeb.tv_sec-timea.tv_sec)*1000000 + (timeb.tv_usec-timea.tv_usec);
+	//FIXME: color needs to be before rasterpos2i, WHY??
+	glColor3f(0.0,0.0,0.0);
 	glRasterPos2f(0.0,0.0);
-	glColor3f(0.5,0.5,0.0);
 	drawString(str);
 	
 	sprintf(str,"%3.1f",1e6/us);
-	//drawString(str);
+	glColor3f(1.0,1.0,1.0);
+	glRasterPos2i(0,0);
+	drawString(str);
 	glutSwapBuffers();
 }
 void mouse(int button,int state,int xscr,int yscr)
