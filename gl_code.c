@@ -73,7 +73,7 @@ void display(void)
 	glRasterPos2i(0,0);
 	glCopyPixels(0,0,w,h,GL_COLOR);
 	//fade out the front buffer
-	glColor4f(0.0,0.0,0.0,0.10);
+	glColor4f(0.0,0.0,0.0,0.05);
 	glBegin(GL_QUADS);
 	glVertex2i(0,0);
 	glVertex2i(0,1);
@@ -151,7 +151,7 @@ void reshape(int wscr,int hscr)
 	glMatrixMode(GL_MODELVIEW);
 }
 void idle() {
-	usleep(20000);
+	//usleep(2000);
 	step();
 	glutPostRedisplay();
 }
