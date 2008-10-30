@@ -12,39 +12,47 @@
 
 #define POINTS 100
 #define SCALE (1.0/700.0)
-double points[POINTS][2];
-double velocity[POINTS][2];
-double acceleration[POINTS][2];
-double oldpoints[POINTS][2];
+double points[POINTS][3];
+double velocity[POINTS][3];
+double acceleration[POINTS][3];
+double oldpoints[POINTS][3];
 
 double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
 int w=500,h=500;
 
+double eyex = 0.0, eyey = 0.5, eyez = -3.0;
+double centerx = 0.5, centery = 0.5, centerz = 0.5;
+
 int acc=1;
 int draw_acc=0;
 void step()
 {
-	memcpy(oldpoints,points,POINTS*2*sizeof(double));
+	memcpy(oldpoints,points,POINTS*3*sizeof(double));
 	int i;
 	for (i = 0; i < POINTS; i++) {
 		acceleration[i][0]=0;
 		acceleration[i][1]=0;
+		acceleration[i][2]=0;
 		//random acceleration
 		if (acc) {
 			double theta = rand()/(double)RAND_MAX*2.0*M_PI;
 			acceleration[i][0]+=cos(theta)*SCALE;
 			acceleration[i][1]+=sin(theta)*SCALE;
+			acceleration[i][2]+=sin(theta)*cos(theta)*SCALE;
 		}
 		//gravity
 		acceleration[i][0]-=(points[i][0]-0.5)*SCALE;
 		acceleration[i][1]-=(points[i][1]-0.5)*SCALE;
+		acceleration[i][2]-=(points[i][2]-0.5)*SCALE;
 
 		velocity[i][0]+=acceleration[i][0];
 		velocity[i][1]+=acceleration[i][1];
+		velocity[i][2]+=acceleration[i][2];
 		//change position
 		points[i][0]+=velocity[i][0];
 		points[i][1]+=velocity[i][1];
+		points[i][2]+=velocity[i][2];
 		
 	}
 }
@@ -61,6 +69,8 @@ struct timeval timeb;
 char str[10];
 void display(void)
 {
+	glLoadIdentity();
+	gluLookAt(eyex,eyey,eyez,centerx,centery,centerz,0.0,1.0,0.0);
 	double t;
 	int i;
 	if (clear) {
@@ -82,14 +92,30 @@ void display(void)
 	glEnd();
 	glReadBuffer(GL_BACK);
 
+	//axes
+	glBegin(GL_LINES);
+	glColor3f(1.0,0.0,0.0);
+	glVertex3f(0.0,0.0,0.0);
+	glVertex3f(1.0,0.0,0.0);
+	glColor3f(0.0,1.0,0.0);
+	glVertex3f(0.0,0.0,0.0);
+	glVertex3f(0.0,1.0,0.0);
+	glColor3f(0.0,0.0,1.0);
+	glVertex3f(0.0,0.0,0.0);
+	glVertex3f(0.0,0.0,1.0);
+	glEnd();
+
 	//draw points
 	glColor3f(1.0,1.0,1.0);
 	glPointSize(2.0);
+	glBegin(GL_POINTS);
+	glVertex3f(0.5,0.5,0.5);
+	glEnd();
 	glBegin(GL_LINES);
 	for (i = 0; i < POINTS; i++) {
 		glColor3f(1.0,1.0,1.0);
-		glVertex2f(points[i][0],points[i][1]);
-		glVertex2f(oldpoints[i][0],oldpoints[i][1]);
+		glVertex3f(points[i][0],points[i][1],points[i][2]);
+		glVertex3f(oldpoints[i][0],oldpoints[i][1],oldpoints[i][2]);
 		if (draw_acc) {
 			glColor3f(1.0,0.0,0.0);
 			glVertex2f(points[i][0],points[i][1]);
@@ -133,6 +159,27 @@ void keyfunc(unsigned char key,int xscr,int yscr)
 	if(key=='m') {
 			draw_acc=!draw_acc;
 	}
+	if(key=='w') {
+		eyez+=0.1;
+	}
+	if(key=='s') {
+		eyez-=0.1;
+	}
+	if(key=='a') {
+		eyex+=0.1;
+	}
+	if(key=='d') {
+		eyex-=0.1;
+	}
+	if(key=='r') {
+		eyey+=0.1;
+	}
+	if(key=='f') {
+		eyey-=0.1;
+	}
+//	gluLookAt(eyex,eyey,eyez, 0.0,0.0,1.0, 0.0,1.0,0.0);
+	printf("%f %f %f\n",eyex,eyey,eyez);
+	glutPostRedisplay();
 }
 void reshape(int wscr,int hscr)
 {
@@ -146,12 +193,16 @@ void reshape(int wscr,int hscr)
 		ymax=1.0*(GLfloat)h/(GLfloat)w;
 	else
 		xmax=1.0*(GLfloat)w/(GLfloat)h;
+	
+	//gluPerspective(180.0,1.0,0.0,200.0);
+	glFrustum(-0.10,0.10,-0.10,0.10,0.5,50.0);
+//	gluLookAt(eyex,eyey,eyez, 0.0,0.0,1.0, 0.0,1.0,0.0);
 
-	gluOrtho2D(xmin,xmax,ymin,ymax);
+	//gluOrtho2D(xmin,xmax,ymin,ymax);
 	glMatrixMode(GL_MODELVIEW);
 }
 void idle() {
-	//usleep(2000);
+	usleep(20000);
 	step();
 	glutPostRedisplay();
 }
@@ -163,8 +214,10 @@ int main(int argc,char* argv[])
 	for (i = 0; i < POINTS; i++) {
 		points[i][0] = 0.5;
 		points[i][1] = 0.5;
+		points[i][2] = 0.5;
 		velocity[i][0] = 0.0;
 		velocity[i][1] = 0.0;
+		velocity[i][2] = 0.0;
 	}
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // single buffering
