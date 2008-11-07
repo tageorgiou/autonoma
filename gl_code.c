@@ -10,25 +10,33 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrender.h>
 
-#define POINTS 100
-#define SCALE (1.0/700.0)
+#define POINTS 2000
+#define SCALE (1.0/70.0)
+#define BARS 60
+#define MAXD 1.0
 double points[POINTS][3];
 double velocity[POINTS][3];
 double acceleration[POINTS][3];
 double oldpoints[POINTS][3];
+double distance[POINTS];
+int bars[BARS];
+int maxheight = 0;
+double sigma,mean;
 
 double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
 int w=500,h=500;
 
 double eyex = 0.0, eyey = 0.5, eyez = -3.0;
-double centerx = 0.5, centery = 0.5, centerz = 0.5;
+double centerx = 0.0, centery = 0.0, centerz = 0.0;
 
 int acc=1;
 int draw_acc=0;
 void step()
 {
+	maxheight=0;
 	memcpy(oldpoints,points,POINTS*3*sizeof(double));
+	memset(bars,0,BARS*sizeof(int));
 	int i;
 	for (i = 0; i < POINTS; i++) {
 		acceleration[i][0]=0;
@@ -41,10 +49,10 @@ void step()
 			acceleration[i][1]+=sin(theta)*SCALE;
 			acceleration[i][2]+=sin(theta)*cos(theta)*SCALE;
 		}
-		//gravity
-		acceleration[i][0]-=(points[i][0]-0.5)*SCALE;
-		acceleration[i][1]-=(points[i][1]-0.5)*SCALE;
-		acceleration[i][2]-=(points[i][2]-0.5)*SCALE;
+		//tension
+		acceleration[i][0]-=(points[i][0])*SCALE;
+		acceleration[i][1]-=(points[i][1])*SCALE;
+		acceleration[i][2]-=(points[i][2])*SCALE;
 
 		velocity[i][0]+=acceleration[i][0];
 		velocity[i][1]+=acceleration[i][1];
@@ -54,7 +62,27 @@ void step()
 		points[i][1]+=velocity[i][1];
 		points[i][2]+=velocity[i][2];
 		
+//		points[i][0]+=acceleration[i][0];
+///		points[i][1]+=acceleration[i][1];
+//		points[i][2]+=acceleration[i][2];
+		
+		distance[i] = sqrt(points[i][0]*points[i][0]+points[i][1]*points[i][1]+points[i][2]*points[i][2]);
+		int index = distance[i]*BARS/MAXD;
+		if (index >= BARS)
+			continue;
+		bars[index]++;
+		if (bars[index] > maxheight) {
+				maxheight=bars[index];
+		}
 	}
+	for (i = 0; i < POINTS; i++) {
+		mean+=distance[i];
+	}
+	mean/=POINTS;
+	for (i = 0; i < POINTS; i++) {
+		sigma+=pow(distance[i]-mean,2);
+	}
+	sigma=sqrt(sigma/POINTS);
 }
 int clear = 3;
 void drawString(char* s)
@@ -79,7 +107,7 @@ void display(void)
 //		clear--;
 	}
 	//get front buffer
-	glReadBuffer(GL_FRONT);
+/*	glReadBuffer(GL_FRONT);
 	glRasterPos2i(0,0);
 	glCopyPixels(0,0,w,h,GL_COLOR);
 	//fade out the front buffer
@@ -91,7 +119,7 @@ void display(void)
 	glVertex2i(1,0);
 	glEnd();
 	glReadBuffer(GL_BACK);
-
+*/
 	//axes
 	glBegin(GL_LINES);
 	glColor3f(1.0,0.0,0.0);
@@ -104,7 +132,7 @@ void display(void)
 	glVertex3f(0.0,0.0,0.0);
 	glVertex3f(0.0,0.0,1.0);
 	glEnd();
-
+	
 	//draw points
 	glColor3f(1.0,1.0,1.0);
 	glPointSize(2.0);
@@ -118,9 +146,31 @@ void display(void)
 		glVertex3f(oldpoints[i][0],oldpoints[i][1],oldpoints[i][2]);
 		if (draw_acc) {
 			glColor3f(1.0,0.0,0.0);
-			glVertex2f(points[i][0],points[i][1]);
-			glVertex2f(points[i][0]+acceleration[i][0]*50,points[i][1]+acceleration[i][1]*50);
+			glVertex3f(points[i][0],points[i][1],points[i][2]);
+			glVertex3f(points[i][0]+acceleration[i][0]*50,points[i][1]+acceleration[i][1]*50,points[i][2]+acceleration[i][2]*50);
 		}
+	}
+	glEnd();
+	
+	double scale = 1.0/(sigma*sqrt(2*M_PI));
+	glColor4f(0.5,1.0,0.5,0.5);
+	for (i = 0; i < BARS; i++) {
+		glBegin(GL_QUADS);
+		glVertex3f(1.0/BARS*i,0,0);
+		glVertex3f(1.0/BARS*i,(double)bars[i]/maxheight,0);
+		glVertex3f(1.0/BARS*(i+1),(double)bars[i]/maxheight,0);
+		glVertex3f(1.0/BARS*(i+1),0,0);
+		glEnd();
+	}
+	glColor4f(1.0,1.0,1.0,0.9);
+	glBegin(GL_LINE_STRIP);
+	double pos;
+	for (pos = 0.0; pos <= 1.0; pos+=0.005)
+	{
+		double y = 1.0/(sigma*sqrt(2*M_PI))
+						*exp(-1.0*pow(pos*MAXD-mean,2.0)/(2*sigma*sigma))
+						;
+		glVertex3f(pos,y/scale,0.0);
 	}
 	glEnd();
 	timea=timeb;
@@ -212,9 +262,9 @@ int main(int argc,char* argv[])
 	srand(0);
 	int i = 0;
 	for (i = 0; i < POINTS; i++) {
-		points[i][0] = 0.5;
-		points[i][1] = 0.5;
-		points[i][2] = 0.5;
+		points[i][0] = 0.0;
+		points[i][1] = 0.0;
+		points[i][2] = 0.0;
 		velocity[i][0] = 0.0;
 		velocity[i][1] = 0.0;
 		velocity[i][2] = 0.0;
