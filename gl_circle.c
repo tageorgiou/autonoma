@@ -10,7 +10,8 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrender.h>
 
-#define POINTS 100
+#define POINTS 200
+#define RADIUS (POINTS/2)
 #define SCALE (1.0/70.0)
 #define BARS 60
 #define MAXD 1.0
@@ -23,7 +24,7 @@ int bars[BARS];
 int maxheight = 0;
 double sigma,mean;
 
-char grid[POINTS][POINTS];
+char grid[POINTS+5][POINTS+5];
 
 int cx=POINTS/2,cy=POINTS/2;
 double x=0.667,y=0.5;
@@ -37,72 +38,41 @@ int acc=1;
 int draw_acc=0;
 void step()
 {
-	grid[cx][cy] = 1;
-	double theta = (double)rand()/RAND_MAX*M_PI*2;
-	grid[(int)(cos(theta)*POINTS/2+POINTS/2)][(int)(sin(theta)*POINTS/2+POINTS/2)] = 1;
-	switch (rand()%4) {
-		case 0:
-			cx++;
-			break;
-		case 1:
-			cx--;
-			break;
-		case 2:
-			cy++;
-			break;
-		case 3:
-			cy--;
-			break;
+	while (1) {
+	int sum = 0;
+	sum += grid[cx+1][cy];
+	sum += grid[cx-1][cy];
+	sum += grid[cx][cy+1];
+	sum += grid[cx][cy-1];
+	int distance = sqrt((cx-RADIUS)*(cx-RADIUS)+(cy-RADIUS)*(cy-RADIUS));
+	if (sum || distance > RADIUS) {
+			if (sum)
+				grid[cx][cy] = 1;
+			printf("new\n");
+			double theta = (double)rand()/RAND_MAX*M_PI*2;
+			cx = (int)(cos(theta)*POINTS/2+POINTS/2);
+			cy = (int)(sin(theta)*POINTS/2+POINTS/2);
+			if (sum) {
+				glutPostRedisplay();
+				break;
+			}
+	} else {
+			switch (rand()%4) {
+				case 0:
+					cx++;
+					break;
+				case 1:
+					cx--;
+					break;
+				case 2:
+					cy++;
+					break;
+				case 3:
+					cy--;
+					break;
+			}
 	}
-	maxheight=0;
-	memcpy(oldpoints,points,POINTS*3*sizeof(double));
-	memset(bars,0,BARS*sizeof(int));
-	int i;
-	for (i = 0; i < POINTS; i++) {
-		acceleration[i][0]=0;
-		acceleration[i][1]=0;
-		acceleration[i][2]=0;
-		//random acceleration
-		if (acc) {
-			double theta = rand()/(double)RAND_MAX*2.0*M_PI;
-			acceleration[i][0]+=cos(theta)*SCALE;
-			acceleration[i][1]+=sin(theta)*SCALE;
-			acceleration[i][2]+=sin(theta)*cos(theta)*SCALE;
-		}
-		//tension
-		acceleration[i][0]-=(points[i][0])*SCALE;
-		acceleration[i][1]-=(points[i][1])*SCALE;
-		acceleration[i][2]-=(points[i][2])*SCALE;
-
-		velocity[i][0]+=acceleration[i][0];
-		velocity[i][1]+=acceleration[i][1];
-		velocity[i][2]+=acceleration[i][2];
-		//change position
-		points[i][0]+=velocity[i][0];
-		points[i][1]+=velocity[i][1];
-		points[i][2]+=velocity[i][2];
-		
-//		points[i][0]+=acceleration[i][0];
-///		points[i][1]+=acceleration[i][1];
-//		points[i][2]+=acceleration[i][2];
-		
-		distance[i] = sqrt(points[i][0]*points[i][0]+points[i][1]*points[i][1]+points[i][2]*points[i][2]);
-		int index = distance[i]*BARS/MAXD;
-		if (index >= BARS)
-			continue;
-		bars[index]++;
-		if (bars[index] > maxheight) {
-				maxheight=bars[index];
-		}
 	}
-	for (i = 0; i < POINTS; i++) {
-		mean+=distance[i];
-	}
-	mean/=POINTS;
-	for (i = 0; i < POINTS; i++) {
-		sigma+=pow(distance[i]-mean,2);
-	}
-	sigma=sqrt(sigma/POINTS);
 }
 int clear = 3;
 void drawString(char* s)
@@ -179,18 +149,21 @@ void display(void)
 	}
 	glEnd();
 */	
+	glPointSize(3.0);
 	int x,y;
 	glBegin(GL_POINTS);
 	for (x=0; x < POINTS; x++) {
 		for (y=0; y < POINTS; y++) {
 			if (grid[x][y]) {
 				glColor3f(grid[x][y],0,0);
-				glVertex3f((double)x/POINTS*2-1.0,(double)y/POINTS*2-1.0,0);
+				glVertex3f((double)x/POINTS*2-1.0,(double)y/POINTS*2-1.0,0.0);
 			}
 		}
 	}
+	glColor3f(0.0,1.0,0.0);
+	glVertex3f((double)cx/POINTS*2-1.0,(double)cy/POINTS*2-1.0,0.0);
 	glEnd();
-
+/*
 	double scale = 1.0/(sigma*sqrt(2*M_PI));
 	glColor4f(0.5,1.0,0.5,0.5);
 	for (i = 0; i < BARS; i++) {
@@ -212,6 +185,7 @@ void display(void)
 		glVertex3f(pos,y/scale,0.0);
 	}
 	glEnd();
+	*/
 	timea=timeb;
 	gettimeofday(&timeb,NULL);
 	double us = (timeb.tv_sec-timea.tv_sec)*1000000 + (timeb.tv_usec-timea.tv_usec);
@@ -293,21 +267,13 @@ void reshape(int wscr,int hscr)
 void idle() {
 	usleep(20000);
 	step();
-	glutPostRedisplay();
+//	glutPostRedisplay();
 }
 
 int main(int argc,char* argv[])
 { 
 	srand(0);
 	int i = 0;
-	for (i = 0; i < POINTS; i++) {
-		points[i][0] = 0.0;
-		points[i][1] = 0.0;
-		points[i][2] = 0.0;
-		velocity[i][0] = 0.0;
-		velocity[i][1] = 0.0;
-		velocity[i][2] = 0.0;
-	}
 	grid[POINTS/2][POINTS/2] = 1;
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // single buffering
