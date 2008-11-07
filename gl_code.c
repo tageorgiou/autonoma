@@ -28,7 +28,7 @@ double xmin,ymin,xmax,ymax;
 int w=500,h=500;
 
 double eyex = 0.0, eyey = 0.5, eyez = -3.0;
-double centerx = 0.5, centery = 0.5, centerz = 0.5;
+double centerx = 0.0, centery = 0.0, centerz = 0.0;
 
 int acc=1;
 int draw_acc=0;
@@ -165,7 +165,6 @@ void display(void)
 	glColor4f(1.0,1.0,1.0,0.9);
 	glBegin(GL_LINE_STRIP);
 	double pos;
-	printf("%f\n",scale);
 	for (pos = 0.0; pos <= 1.0; pos+=0.005)
 	{
 		double y = 1.0/(sigma*sqrt(2*M_PI))
@@ -263,9 +262,9 @@ int main(int argc,char* argv[])
 	srand(0);
 	int i = 0;
 	for (i = 0; i < POINTS; i++) {
-		points[i][0] = 0.5;
-		points[i][1] = 0.5;
-		points[i][2] = 0.5;
+		points[i][0] = 0.0;
+		points[i][1] = 0.0;
+		points[i][2] = 0.0;
 		velocity[i][0] = 0.0;
 		velocity[i][1] = 0.0;
 		velocity[i][2] = 0.0;
