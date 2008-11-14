@@ -10,8 +10,9 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrender.h>
 
-#define POINTS 200
+#define POINTS 1000
 #define RADIUS (POINTS/2)
+#define WALKERS
 #define SCALE (1.0/70.0)
 #define BARS 60
 #define MAXD 1.0
@@ -24,9 +25,11 @@ int bars[BARS];
 int maxheight = 0;
 double sigma,mean;
 
-char grid[POINTS+5][POINTS+5];
-
+//char grid[POINTS+5][POINTS+5];
+char** grid;
 int cx=POINTS/2,cy=POINTS/2;
+//int cx[WALKERS];
+//int cy[WALKERS];
 double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
 int w=500,h=500;
@@ -36,42 +39,62 @@ double centerx = 0.0, centery = 0.0, centerz = 0.0;
 
 int acc=1;
 int draw_acc=0;
+
+void printGrid() {
+	printf("-------\n");
+	int i,j;
+	for (i = 0; i < POINTS+5; i++) {
+		for (j = 0; j < POINTS+5; j++) {
+			printf("%d ",grid[j][i]);
+		}
+		printf("\n");
+	}
+}
 void step()
 {
 	while (1) {
-	int sum = 0;
-	sum += grid[cx+1][cy];
-	sum += grid[cx-1][cy];
-	sum += grid[cx][cy+1];
-	sum += grid[cx][cy-1];
-	int distance = sqrt((cx-RADIUS)*(cx-RADIUS)+(cy-RADIUS)*(cy-RADIUS));
-	if (sum || distance > RADIUS) {
-			if (sum)
-				grid[cx][cy] = 1;
-			printf("new\n");
-			double theta = (double)rand()/RAND_MAX*M_PI*2;
-			cx = (int)(cos(theta)*POINTS/2+POINTS/2);
-			cy = (int)(sin(theta)*POINTS/2+POINTS/2);
-			if (sum) {
-				glutPostRedisplay();
-				break;
+			int sum = 0;
+			int distance = sqrt((cx-RADIUS)*(cx-RADIUS)+(cy-RADIUS)*(cy-RADIUS));
+			if (distance < RADIUS) {
+//				printf("%d %d\n", cx, cy);
+				if (cx + 1 < POINTS)
+					sum += grid[cx+1][cy];
+				if (cx - 1 >= 0)
+					sum += grid[cx-1][cy];
+				if (cy + 1 < POINTS)
+					sum += grid[cx][cy+1];
+				if (cy - 1 >= 0)
+					sum += grid[cx][cy-1];
 			}
-	} else {
-			switch (rand()%4) {
-				case 0:
-					cx++;
-					break;
-				case 1:
-					cx--;
-					break;
-				case 2:
-					cy++;
-					break;
-				case 3:
-					cy--;
-					break;
+			if (sum || distance >= RADIUS) {
+					if (sum) {
+						grid[cx][cy] = 1;
+					//	printf("%d %d\n", cx, cy);
+					//	printGrid();
+					}
+					double theta = (double)rand()/RAND_MAX*M_PI*2;
+					cx = (int)(cos(theta)*POINTS/2+POINTS/2);
+					cy = (int)(sin(theta)*POINTS/2+POINTS/2);
+					if (sum) {
+						glutPostRedisplay();
+						break;
+					}
+			} else {
+					switch (rand()%4) {
+						case 0:
+							cx++;
+							break;
+						case 1:
+							cx--;
+							break;
+						case 2:
+							cy++;
+							break;
+						case 3:
+							cy--;
+							break;
+					}
 			}
-	}
 	}
 }
 int clear = 3;
@@ -149,7 +172,7 @@ void display(void)
 	}
 	glEnd();
 */	
-	glPointSize(3.0);
+	glPointSize(1.0);
 	int x,y;
 	glBegin(GL_POINTS);
 	for (x=0; x < POINTS; x++) {
@@ -272,8 +295,12 @@ void idle() {
 
 int main(int argc,char* argv[])
 { 
-	srand(0);
 	int i = 0;
+	grid = (char**)malloc(sizeof(char*)*POINTS);
+	for (i = 0; i < POINTS; i++) {
+		grid[i] = (char*)malloc(sizeof(char)*POINTS);
+	}
+	srand(0);
 	grid[POINTS/2][POINTS/2] = 1;
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // single buffering
