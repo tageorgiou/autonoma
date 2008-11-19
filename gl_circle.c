@@ -10,35 +10,37 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrender.h>
 
-#define POINTS 1000
-#define RADIUS (POINTS/2)
-#define WALKERS
+#define POINTS 2000
+#define RADIUS (tehradius)
+#define ROFFSET (POINTS/2)
+#define WALKERS 1000
 #define SCALE (1.0/70.0)
 #define BARS 60
 #define MAXD 1.0
-double points[POINTS][3];
-double velocity[POINTS][3];
-double acceleration[POINTS][3];
-double oldpoints[POINTS][3];
-double distance[POINTS];
-int bars[BARS];
+int points[WALKERS][3];
 int maxheight = 0;
 double sigma,mean;
-
+int tehradius = 20;
+int stickypoints = 1;
 //char grid[POINTS+5][POINTS+5];
 char** grid;
-int cx=POINTS/2,cy=POINTS/2;
-//int cx[WALKERS];
+		//int cx[WALKERS];
 //int cy[WALKERS];
 double x=0.667,y=0.5;
 double xmin,ymin,xmax,ymax;
 int w=500,h=500;
 
-double eyex = 0.0, eyey = 0.5, eyez = -6.0;
+double eyex = 0.0, eyey = 0.5, eyez = 6.0;
 double centerx = 0.0, centery = 0.0, centerz = 0.0;
 
 int acc=1;
 int draw_acc=0;
+
+//void calcradius()
+//{
+//	tehradius = log(sqrt((double)stickypoints)*5)*10;
+//	printf("%d\n",tehradius);
+//}
 
 void printGrid() {
 	printf("-------\n");
@@ -50,52 +52,60 @@ void printGrid() {
 		printf("\n");
 	}
 }
+int distance_off(int x, int y) {
+	return sqrt((x-ROFFSET)*(x-ROFFSET)+(y-ROFFSET)*(y-ROFFSET));
+}
 void step()
 {
-	while (1) {
+	int n;
+	for (n = 0; n < WALKERS; n++) {
 			int sum = 0;
-			int distance = sqrt((cx-RADIUS)*(cx-RADIUS)+(cy-RADIUS)*(cy-RADIUS));
+			int distance = sqrt((points[n][0]-ROFFSET)*(points[n][0]-ROFFSET)+(points[n][1]-ROFFSET)*(points[n][1]-ROFFSET));
 			if (distance < RADIUS) {
-//				printf("%d %d\n", cx, cy);
-				if (cx + 1 < POINTS)
-					sum += grid[cx+1][cy];
-				if (cx - 1 >= 0)
-					sum += grid[cx-1][cy];
-				if (cy + 1 < POINTS)
-					sum += grid[cx][cy+1];
-				if (cy - 1 >= 0)
-					sum += grid[cx][cy-1];
+				if (points[n][0] + 1 < POINTS)
+					sum += grid[points[n][0]+1][points[n][1]];
+				if (points[n][0] > 0)
+					sum += grid[points[n][0]-1][points[n][1]];
+				if (points[n][1] + 1 < POINTS)
+					sum += grid[points[n][0]][points[n][1]+1];
+				if (points[n][1] > 0)
+					sum += grid[points[n][0]][points[n][1]-1];
 			}
 			if (sum || distance >= RADIUS) {
 					if (sum) {
-						grid[cx][cy] = 1;
-					//	printf("%d %d\n", cx, cy);
-					//	printGrid();
+						grid[points[n][0]][points[n][1]] = 1;
+						int dist = distance_off(points[n][0],points[n][1]);
+						if (dist + 50 > tehradius)
+							tehradius = dist + 50;
+						stickypoints++;
 					}
 					double theta = (double)rand()/RAND_MAX*M_PI*2;
-					cx = (int)(cos(theta)*POINTS/2+POINTS/2);
-					cy = (int)(sin(theta)*POINTS/2+POINTS/2);
-					if (sum) {
-						glutPostRedisplay();
-						break;
-					}
+					points[n][0] = (int)(cos(theta)*(RADIUS-1)+ROFFSET);
+					points[n][1] = (int)(sin(theta)*(RADIUS-1)+ROFFSET);
+//					int rad = (double)rand()/RAND_MAX*RADIUS;
+//					points[n][0] = (int)(cos(theta)*rad+ROFFSET);
+//					points[n][1] = (int)(sin(theta)*rad+ROFFSET);
+//					if (sum) {
+//						glutPostRedisplay();
+//					}
 			} else {
 					switch (rand()%4) {
 						case 0:
-							cx++;
+							points[n][0]++;
 							break;
 						case 1:
-							cx--;
+							points[n][0]--;
 							break;
 						case 2:
-							cy++;
+							points[n][1]++;
 							break;
 						case 3:
-							cy--;
+							points[n][1]--;
 							break;
 					}
 			}
 	}
+	glutPostRedisplay();
 }
 int clear = 3;
 void drawString(char* s)
@@ -184,7 +194,10 @@ void display(void)
 		}
 	}
 	glColor3f(0.0,1.0,0.0);
-	glVertex3f((double)cx/POINTS*2-1.0,(double)cy/POINTS*2-1.0,0.0);
+	int n;
+	for (n = 0; n < WALKERS; n++) {
+		glVertex3f((double)points[n][0]/POINTS*2-1.0,(double)points[n][1]/POINTS*2-1.0,0.0);
+	}
 	glEnd();
 /*
 	double scale = 1.0/(sigma*sqrt(2*M_PI));
@@ -288,8 +301,11 @@ void reshape(int wscr,int hscr)
 	glMatrixMode(GL_MODELVIEW);
 }
 void idle() {
-	usleep(20000);
-	step();
+//	usleep(20000);
+	int i;
+	for (i = 0; i < 10; i++)
+		step();
+	//calcradius();
 //	glutPostRedisplay();
 }
 
@@ -300,8 +316,14 @@ int main(int argc,char* argv[])
 	for (i = 0; i < POINTS; i++) {
 		grid[i] = (char*)malloc(sizeof(char)*POINTS);
 	}
-	srand(0);
-	grid[POINTS/2][POINTS/2] = 1;
+	for (i = 0; i < WALKERS; i++) {
+		double theta = (double)rand()/RAND_MAX*M_PI*2;
+		int rad = (double)rand()/RAND_MAX*RADIUS;
+		points[i][0] = (int)(cos(theta)*rad+ROFFSET);
+		points[i][1] = (int)(sin(theta)*rad+ROFFSET);
+	}
+	srand(9);
+	grid[ROFFSET][ROFFSET] = 1;
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // single buffering
 	glutInitWindowSize(w,h);					 // for double use GLUT_DOUBLE
